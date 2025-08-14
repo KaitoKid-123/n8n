@@ -1,0 +1,417 @@
+{
+  "createdAt": "2025-07-22T07:37:11.732Z",
+  "updatedAt": "2025-08-13T10:13:53.412Z",
+  "id": "hED1QpJAQ6UGJYfB",
+  "name": "Generate SBV Report",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "path": "/input/sbv/test.xlsx",
+        "binaryPropertyName": "data_template"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        880
+      ],
+      "id": "dd94eb45-5172-4ca4-b15f-0b53bb4ea85f",
+      "name": "SFTP - Get Template",
+      "credentials": {
+        "sftp": {
+          "id": "7XD7BWuc7mU9P5QT",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Tạo Báo Cáo Quý",
+        "formDescription": "Chọn quý và năm để tạo báo cáo",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Quý",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Q1"
+                  },
+                  {
+                    "option": "Q2"
+                  },
+                  {
+                    "option": "Q3"
+                  },
+                  {
+                    "option": "Q4"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Năm",
+              "fieldType": "number",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        560
+      ],
+      "id": "3f3e7d04-502f-4100-b7f1-821b87e5b346",
+      "name": "Form Trigger",
+      "webhookId": "c862c802-6b9a-44b5-b033-d6f8c2a0507b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code1 node - xử lý input từ nhiều sources\nconst allItems = $input.all();\nconsole.log('Total items received:', allItems.length);\n\nconst templateFile = allItems.find(item => \n    item.binary.data_template.fileExtension.endsWith('xlsx')\n);\n\nconst csvFiles = allItems.filter(item => \n    item.binary.data.mimeType.endsWith('text/plain')\n);\n\nreturn [{\n    json: {\n        quarter: $input.first().json[\"Quý\"], \n        year: $input.first().json[\"Năm\"].toString(),\n        sheet_mapping: '{\"01-TT\":\"TT01.txt\",\"02-TT\":\"TT02.txt\",\"03-TT\":\"TT03.txt\",\"04-TT\":\"TT04.txt\",\"05-TT\":\"TT05.txt\",\"06-TT\":\"TT06.txt\"}',\n        \"sender_email\": \"khang.le@smartpayvn.com\",\n        \"sender_password\": \"Kai@1610@Kai\",\n        \"recipients\": [\"khang.le@smartpayvn.com\"],\n        \"cc\": [],\n        \"bcc\": [],\n        \"env\": $input.first().json.formMode\n    },\n    binary: {\n        data_template: templateFile.binary.data_template,\n        data0: csvFiles[0].binary.data,\n        data1: csvFiles[1].binary.data,\n        data2: csvFiles[2].binary.data,\n        data3: csvFiles[3].binary.data,\n        data4: csvFiles[4].binary.data,\n        data5: csvFiles[5].binary.data,\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        496
+      ],
+      "id": "d3b99be5-d483-42c2-b89a-2fb44769b2a1",
+      "name": "Format request for API"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        496
+      ],
+      "id": "bf476426-496c-4b55-8b84-4a953360238b",
+      "name": "Combine All File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sb-sbv-report.paysmart.com.vn:8443/api/v1/sbv-quarter/get-sharepoint-file",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"quarter\": {{ $json['Quý'].toJsonString() }},\n    \"year\": {{ $json['Năm'] }}\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        32,
+        880
+      ],
+      "id": "c0059aff-84f2-4177-80cd-84418e57d9db",
+      "name": "Get Data From SharePoint"
+    },
+    {
+      "parameters": {
+        "outputPrefix": "data"
+      },
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        880
+      ],
+      "id": "ce401ffb-599a-4e7d-a24f-bff80f78c474",
+      "name": "Unzip"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sb-sbv-report.paysmart.com.vn:8443/api/v1/sbv-quarter/generate-and-send-report",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quarter",
+              "value": "={{ $json.quarter }}"
+            },
+            {
+              "name": "year",
+              "value": "={{ $json.year }}"
+            },
+            {
+              "name": "sheet_mapping",
+              "value": "={{ $json.sheet_mapping }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "template_file",
+              "inputDataFieldName": "=data_template"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "csv_files",
+              "inputDataFieldName": "data0"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "csv_files",
+              "inputDataFieldName": "=data1"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "csv_files",
+              "inputDataFieldName": "data2"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "csv_files",
+              "inputDataFieldName": "data3"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "csv_files",
+              "inputDataFieldName": "data4"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "csv_files",
+              "inputDataFieldName": "data5"
+            },
+            {
+              "name": "sender_email",
+              "value": "={{ $json.sender_email }}"
+            },
+            {
+              "name": "sender_password",
+              "value": "={{ $json.sender_password }}"
+            },
+            {
+              "name": "cc",
+              "value": "={{ $json.cc.toJsonString() }}"
+            },
+            {
+              "name": "bcc",
+              "value": "={{ $json.bcc.toJsonString() }}"
+            },
+            {
+              "name": "recipients",
+              "value": "={{ $json.recipients.toJsonString() }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1136,
+        496
+      ],
+      "id": "7900582b-a148-499c-8e60-c283b07f3129",
+      "name": "Generate And Send SBV Quarter Report"
+    },
+    {
+      "parameters": {
+        "resource": "bucket",
+        "operation": "search",
+        "bucketName": "sandbox-feeka",
+        "additionalFields": {
+          "prefix": "=sbv-data-report/{{ $json.Năm.toString().concat($json.Quý) }}/"
+        }
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        224,
+        656
+      ],
+      "id": "016a71c8-d75f-45d5-ba21-9872bc04330a",
+      "name": "Get File Key",
+      "credentials": {
+        "s3": {
+          "id": "jk0mLN7jS5w3i4sN",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bucketName": "sandbox-feeka",
+        "fileKey": "={{ $json.Key }}",
+        "binaryPropertyName": "=data"
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        448,
+        656
+      ],
+      "id": "46af1220-fd42-4711-99bc-afc1ddadaaed",
+      "name": "Download File By Key",
+      "credentials": {
+        "s3": {
+          "id": "jk0mLN7jS5w3i4sN",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bucketName": "sandbox-feeka",
+        "fileKey": "sbv-data-report/test.xlsx",
+        "binaryPropertyName": "data_template"
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        416,
+        464
+      ],
+      "id": "aa7c5f18-afac-4590-b4a2-d1e573b4e7ad",
+      "name": "Download Template",
+      "credentials": {
+        "s3": {
+          "id": "jk0mLN7jS5w3i4sN",
+          "name": "S3 account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get File Key",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SFTP - Get Template": {
+      "main": [
+        []
+      ]
+    },
+    "Format request for API": {
+      "main": [
+        [
+          {
+            "node": "Generate And Send SBV Quarter Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Combine All File": {
+      "main": [
+        [
+          {
+            "node": "Format request for API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Data From SharePoint": {
+      "main": [
+        [
+          {
+            "node": "Unzip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unzip": {
+      "main": [
+        [
+          {
+            "node": "SFTP - Get Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate And Send SBV Quarter Report": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Get File Key": {
+      "main": [
+        [
+          {
+            "node": "Download File By Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Download File By Key": {
+      "main": [
+        [
+          {
+            "node": "Combine All File",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        []
+      ]
+    },
+    "Download Template": {
+      "main": [
+        [
+          {
+            "node": "Combine All File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "wZjiDd7nwL1IHnk9"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "6171c137-ff18-464c-848a-7ded2dc78a12",
+  "triggerCount": 1,
+  "tags": []
+}
