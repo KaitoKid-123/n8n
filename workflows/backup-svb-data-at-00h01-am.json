@@ -1,0 +1,550 @@
+{
+  "createdAt": "2025-07-30T06:40:06.267Z",
+  "updatedAt": "2025-08-06T02:08:44.443Z",
+  "id": "3g2pj835ljPXbnep",
+  "name": "Backup SVB Data At 00h01 AM",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtMinute": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1472,
+        432
+      ],
+      "id": "53bb0435-4eeb-49fd-bc8f-9650fe4966d6",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "command": "cd /home/node/smartpay && /bin/sh export_merchant_sbv_csv.sh"
+      },
+      "name": "Export Merchant Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -1248,
+        432
+      ],
+      "id": "129f3661-7a59-41c1-966b-175fb3725ede",
+      "typeVersion": 1,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cd /home/node/smartpay && /bin/sh export_user_sbv_csv.sh"
+      },
+      "name": "Export User Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -1248,
+        864
+      ],
+      "id": "5f8f77bb-d5ef-4c1a-aa62-c475a2272a50",
+      "typeVersion": 1,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cd /home/node/smartpay && /bin/sh import_merchant_sbv_csv.sh"
+      },
+      "name": "Import Merchant Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -944,
+        416
+      ],
+      "id": "73936fa8-3e52-4219-9de5-b069b157f228",
+      "typeVersion": 1,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cd /home/node/smartpay && /bin/sh import_user_sbv_csv.sh"
+      },
+      "name": "Import User Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -944,
+        848
+      ],
+      "id": "424bfef5-50c2-4870-92db-c8ecff0a53bb",
+      "typeVersion": 1,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cd /home/node/smartpay && /bin/sh export_transaction_sbv_csv.sh"
+      },
+      "name": "Export Transaction Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -1248,
+        32
+      ],
+      "id": "c62229eb-f24d-4e03-8dc1-94c68912c9fa",
+      "typeVersion": 1,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cd /home/node/smartpay && /bin/sh import_transaction_sbv_csv.sh"
+      },
+      "name": "Import Transaction Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -944,
+        16
+      ],
+      "id": "abb3f372-ed0b-4099-8d93-896dbca0156f",
+      "typeVersion": 1,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log import error\nconst now = new Date().toISOString();\nconst error = $input.first().json.error;\nconsole.error(`✗ Import failed at ${now}:`, error);\nconst step = $prevNode.name;\n\nreturn [{\n  json: {\n    status: 'error',\n    step: step,\n    error: error,\n    timestamp: now\n  }\n}];"
+      },
+      "name": "Log Export/Import Transaction Error",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -640,
+        192
+      ],
+      "id": "7c328ed1-0ca9-4f79-89c1-b7c0d8d6590e",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log import error\nconst now = new Date().toISOString();\nconst error = $input.first().json.error;\nconsole.error(`✗ Import failed at ${now}:`, error);\nconst step = $prevNode.name;\n\nreturn [{\n  json: {\n    status: 'error',\n    step: step,\n    error: error,\n    timestamp: now\n  }\n}];"
+      },
+      "name": "Log Export/Import Merchant Error",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -640,
+        624
+      ],
+      "id": "ae54a795-050a-454f-bd5e-8385e1e10671",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log import error\nconst now = new Date().toISOString();\nconst error = $input.first().json.error;\nconsole.error(`✗ Import failed at ${now}:`, error);\nconst step = $prevNode.name;\n\nreturn [{\n  json: {\n    status: 'error',\n    step: step,\n    error: error,\n    timestamp: now\n  }\n}];"
+      },
+      "name": "Log Export/Import User Error",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -640,
+        1056
+      ],
+      "id": "4ec61772-14b5-4896-be1e-a5729bdbc452",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chatId": "-4925324982",
+        "text": "=[[Error]][[{{ $workflow.name }}]][[{{ $prevNode.name }}]]: \n{{ $json.error }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        192
+      ],
+      "id": "3f300772-44cf-48fc-8069-298d8810991e",
+      "name": "Error Export/Import Transaction",
+      "webhookId": "29f05d6c-b758-423f-bdad-d8c65ec07c76",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-4925324982",
+        "text": "=[[Success]][[{{ $workflow.name }}]][[{{ $prevNode.name }}]]: \n{{ $json.stdout }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "8a2a4a49-d258-47c7-83f1-ab2979ca6526",
+      "name": "Success Export/Import Transaction",
+      "webhookId": "29f05d6c-b758-423f-bdad-d8c65ec07c76",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-4925324982",
+        "text": "=[[Success]][[{{ $workflow.name }}]][[{{ $prevNode.name }}]]: \n{{ $json.stdout }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "dc0892e5-e7f0-469a-9c92-152322f28000",
+      "name": "Success Export/Import Merchant",
+      "webhookId": "29f05d6c-b758-423f-bdad-d8c65ec07c76",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-4925324982",
+        "text": "=[[Error]][[{{ $workflow.name }}]][[{{ $prevNode.name }}]]: \n{{ $json.error }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        624
+      ],
+      "id": "d7ae8e10-5638-4300-9ab6-afad2dfb44f6",
+      "name": "Error Export/Import Merchant",
+      "webhookId": "29f05d6c-b758-423f-bdad-d8c65ec07c76",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-4925324982",
+        "text": "=[[Success]][[{{ $workflow.name }}]][[{{ $prevNode.name }}]]: \n{{ $json.stdout }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        832
+      ],
+      "id": "57d0c81a-b8b9-4491-8765-b8de25beea89",
+      "name": "Success Export/Import User",
+      "webhookId": "29f05d6c-b758-423f-bdad-d8c65ec07c76",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-4925324982",
+        "text": "=[[Error]][[{{ $workflow.name }}]][[{{ $prevNode.name }}]]: \n{{ $json.error }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        1056
+      ],
+      "id": "7a8fa524-155e-4911-9c70-cd75d60c1030",
+      "name": "Error Export/Import User",
+      "webhookId": "29f05d6c-b758-423f-bdad-d8c65ec07c76",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log success\nconst now = new Date().toISOString();\nconst step =  $prevNode.name;\nlet stdout = '';\nlet snapCount = 0;\nlet histCount = 0;\n\nif (items && items.length > 0 && $input.first().json.stdout) {\n  stdout = $input.first().json.stdout;\n  \n  // Trích xuất số lượng bản ghi từ stdout\n  const snapMatch = stdout.match(/Records in sbvsnap\\.transaction for \\d{4}-\\d{2}-\\d{2}: (\\d+)/);\n  const histMatch = stdout.match(/Records in sbvhist\\.transaction for \\d{4}-\\d{2}-\\d{2}: (\\d+)/);\n  \n  if (snapMatch) snapCount = parseInt(snapMatch[1], 10);\n  if (histMatch) histCount = parseInt(histMatch[1], 10);\n} else {\n  console.warn('Warning: stdout not found in items');\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    message: step + ' data sync completed',\n    stdout: stdout,\n    snapCount: snapCount,\n    histCount: histCount,\n    timestamp: now\n  }\n}];"
+      },
+      "name": "Log Import Transaction Success",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -640,
+        0
+      ],
+      "id": "f72ff7ba-591f-4107-a34e-2b44702774b8",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log success\nconst now = new Date().toISOString();\nconst step =  $prevNode.name;\nlet stdout = '';\nlet snapCount = 0;\nlet histCount = 0;\n\nif (items && items.length > 0 && $input.first().json.stdout) {\n  stdout = $input.first().json.stdout;\n  \n  // Trích xuất số lượng bản ghi từ stdout\n  const snapMatch = stdout.match(/Records in sbvsnap\\.merchant for \\d{4}-\\d{2}-\\d{2}: (\\d+)/);\n  const histMatch = stdout.match(/Records in sbvhist\\.merchant for \\d{4}-\\d{2}-\\d{2}: (\\d+)/);\n  \n  if (snapMatch) snapCount = parseInt(snapMatch[1], 10);\n  if (histMatch) histCount = parseInt(histMatch[1], 10);\n} else {\n  console.warn('Warning: stdout not found in items');\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    message: step + ' data sync completed',\n    stdout: stdout,\n    snapCount: snapCount,\n    histCount: histCount,\n    timestamp: now\n  }\n}];"
+      },
+      "name": "Log Import Merchant Success",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -640,
+        400
+      ],
+      "id": "4cacd7b9-fca6-49a4-ac71-1e62c12aa48a",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log success\nconst now = new Date().toISOString();\nconst step =  $prevNode.name;\nlet stdout = '';\nlet snapCount = 0;\nlet histCount = 0;\n\nif (items && items.length > 0 && $input.first().json.stdout) {\n  stdout = $input.first().json.stdout;\n  \n  // Trích xuất số lượng bản ghi từ stdout\n  const snapMatch = stdout.match(/Records in sbvsnap\\.users for \\d{4}-\\d{2}-\\d{2}: (\\d+)/);\n  const histMatch = stdout.match(/Records in sbvhist\\.users for \\d{4}-\\d{2}-\\d{2}: (\\d+)/);\n  \n  if (snapMatch) snapCount = parseInt(snapMatch[1], 10);\n  if (histMatch) histCount = parseInt(histMatch[1], 10);\n} else {\n  console.warn('Warning: stdout not found in items');\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    message: step + ' data sync completed',\n    stdout: stdout,\n    snapCount: snapCount,\n    histCount: histCount,\n    timestamp: now\n  }\n}];"
+      },
+      "name": "Log Import User Success",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -640,
+        832
+      ],
+      "id": "b08f545c-0679-4d55-96a5-60471677e2e5",
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Export Merchant Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Export User Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Export Transaction Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Merchant Data": {
+      "main": [
+        [
+          {
+            "node": "Import Merchant Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Success Export/Import Merchant",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Export/Import Merchant Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import Merchant Data": {
+      "main": [
+        [
+          {
+            "node": "Log Import Merchant Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Export/Import Merchant Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export User Data": {
+      "main": [
+        [
+          {
+            "node": "Import User Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Success Export/Import User",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Export/Import User Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import User Data": {
+      "main": [
+        [
+          {
+            "node": "Log Import User Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Export/Import User Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Transaction Data": {
+      "main": [
+        [
+          {
+            "node": "Import Transaction Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Success Export/Import Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Export/Import Transaction Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import Transaction Data": {
+      "main": [
+        [
+          {
+            "node": "Log Import Transaction Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Export/Import Transaction Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Export/Import Transaction Error": {
+      "main": [
+        [
+          {
+            "node": "Error Export/Import Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Export/Import Merchant Error": {
+      "main": [
+        [
+          {
+            "node": "Error Export/Import Merchant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Export/Import User Error": {
+      "main": [
+        [
+          {
+            "node": "Error Export/Import User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Import Transaction Success": {
+      "main": [
+        [
+          {
+            "node": "Success Export/Import Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Import Merchant Success": {
+      "main": [
+        [
+          {
+            "node": "Success Export/Import Merchant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Import User Success": {
+      "main": [
+        [
+          {
+            "node": "Success Export/Import User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "a133a2e8-baba-43e0-8537-4a37e49e453f",
+  "triggerCount": 1,
+  "tags": []
+}
