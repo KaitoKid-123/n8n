@@ -1,0 +1,157 @@
+{
+  "name": "Process SBV Report Error",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        384
+      ],
+      "id": "ec7fb6d1-67d4-4efb-ba45-193c8a62dedd"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data and environment\nconst errorData = $input.first().json;\n// const isProduction = $env.ENVIRONMENT === 'production';\nconst isProduction = true;\n\n// Extract error information\nconst executionId = errorData.execution?.id || 'Unknown';\nconst executionUrl = errorData.execution?.url || '';\nconst errorMessage = errorData.execution?.error?.message || 'Unknown error';\nconst lastNodeExecuted = errorData.execution?.lastNodeExecuted || 'Unknown Node';\nconst workflowName = errorData.workflow?.name || 'Unknown Workflow';\nconst executionMode = errorData.execution?.mode || 'manual';\n\n// Determine error type\nlet errorType = 'General Error';\nif (errorMessage.includes('Cannot read properties of undefined')) {\n    errorType = 'Data Structure Error';\n} else if (errorMessage.includes('FormData')) {\n    errorType = 'HTTP Request Error';\n} else if (errorMessage.includes('ECONNREFUSED')) {\n    errorType = 'Connection Error';\n} else if (errorMessage.includes('timeout')) {\n    errorType = 'Timeout Error';\n}\n\n// Create environment-specific message\nconst environmentEmoji = isProduction ? '🔴' : '🟡';\nconst environmentName = isProduction ? 'Production' : 'Sandbox';\n\n// Build Telegram message\nlet telegramMessage = `${environmentEmoji} <b>${environmentName} Error</b>\\n\\n`;\ntelegramMessage += `<b>Workflow:</b> ${workflowName}\\n`;\ntelegramMessage += `<b>Failed Node:</b> ${lastNodeExecuted}\\n`;\ntelegramMessage += `<b>Error Type:</b> ${errorType}\\n`;\ntelegramMessage += `<b>Error Message:</b>\\n<code>${errorMessage}</code>\\n\\n`;\ntelegramMessage += `<b>Execution Details:</b>\\n`;\ntelegramMessage += `• ID: ${executionId}\\n`;\ntelegramMessage += `• Mode: ${executionMode}\\n`;\ntelegramMessage += `• Time: ${new Date().toISOString()}\\n`;\nif (executionUrl) {\n    telegramMessage += `\\n<b>Execution URL:</b> ${executionUrl}`;\n}\ntelegramMessage = telegramMessage.replace(/\\\\/g, '\\\\\\\\').replace(/\\n/g, '\\\\n');\n\n// Structured output\nreturn [{\n    json: {\n        telegramMessage,\n        error: {\n            type: errorType,\n            message: errorMessage,\n            node: lastNodeExecuted,\n            timestamp: new Date().toISOString()\n        },\n        execution: {\n            id: executionId,\n            url: executionUrl,\n            mode: executionMode,\n            workflowName\n        },\n        environment: {\n            name: environmentName.toLowerCase(),\n            isProduction,\n            emoji: environmentEmoji\n        },\n        originalError: errorData\n    }\n}];"
+      },
+      "name": "Process SBV Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        384
+      ],
+      "id": "9d89ced1-b63f-4062-a5d6-b53e506f33d0"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.environment.name }}",
+              "value2": "production"
+            }
+          ]
+        }
+      },
+      "name": "Check Environment (Error)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        384
+      ],
+      "id": "db0c9673-cfcb-4575-8cd1-0e0264fbc67f"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8484440325:AAG7lpfbzhtY1aQTTnYnVC3lWkOOoUd3DNI/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"-4925324982\",\n  \"text\": \"{{ $json.telegramMessage }}\",\n  \"parse_mode\": \"HTML\"\n}",
+        "options": {
+          "proxy": "http://10.1.1.93:3128",
+          "timeout": 30000
+        }
+      },
+      "name": "Error Alert via Proxy (Production)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -784,
+        272
+      ],
+      "id": "47c13c0a-7ed6-4ac8-8327-3d2d8f38818c"
+    },
+    {
+      "parameters": {
+        "chatId": "=-4925324982",
+        "text": "={{ $json.telegramMessage }}",
+        "additionalFields": {
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
+        }
+      },
+      "name": "Error Alert Direct (Sandbox)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        -784,
+        480
+      ],
+      "id": "3d29c5dc-e0d5-4060-a5e5-c5b6dbacc815",
+      "webhookId": "7eebcc69-04ef-4474-ba9e-6b027b7ad034",
+      "credentials": {
+        "telegramApi": {
+          "id": "CFkN7WELIFcOgdnf",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process SBV Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process SBV Error": {
+      "main": [
+        [
+          {
+            "node": "Check Environment (Error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Environment (Error)": {
+      "main": [
+        [
+          {
+            "node": "Error Alert via Proxy (Production)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Alert Direct (Sandbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a533e78b-75d2-44d2-b7ea-20e7aa9afbf3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a087d1e5e882a28e92bb90ca973c83236735f0ead73c81e3092318d28ae1f8f0"
+  },
+  "id": "wZjiDd7nwL1IHnk9",
+  "tags": []
+}
